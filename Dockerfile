@@ -1,18 +1,21 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-
-COPY ["CliVet.csproj", "./"]
-RUN dotnet restore "./CliVet.csproj"
-
-COPY . .
-
-RUN dotnet publish "CliVet.csproj" -c Release -o /app/publish
-
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
-
-COPY --from=build /app/publish .
-
 EXPOSE 8080
+EXPOSE 8081
 
-ENTRYPOINT ["dotnet", "CliVet.dll"]
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["ApiRestfull.csproj", "."]
+RUN dotnet restore "./ApiRestfull.csproj"
+COPY . .
+RUN dotnet build "./ApiRestfull.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./ApiRestfull.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "ApiRestfull.dll"]
