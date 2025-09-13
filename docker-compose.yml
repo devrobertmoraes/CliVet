@@ -1,0 +1,41 @@
+﻿# Define os serviços (containers) que compõem nossa aplicação
+services:
+  # --- Serviço do Banco de Dados ---
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: clivet-sql-server
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Robertdev123! # <-- SENHA LUGAR 1
+    ports:
+      - "1433:1433" # Mapeia a porta do container para a sua máquina
+    networks:
+      - clivet-network
+    volumes:
+      - db-data:/var/opt/mssql # Usa um volume nomeado para persistir os dados
+
+  # --- Serviço da nossa API ---
+  api:
+    container_name: clivet-api
+    build:
+      context: . # Constrói a imagem a partir do Dockerfile no diretório atual
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080" # Mapeia a porta da API
+    networks:
+      - clivet-network
+    environment:
+      # Sobrescreve a Connection String do appsettings.json
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db,1433;Database=CliVetDb;User Id=sa;Password=Robertdev123!;TrustServerCertificate=True # <-- SENHA LUGAR 2
+    depends_on:
+      - db # Diz à API para esperar o serviço 'db' iniciar
+
+# Define a rede compartilhada que nossos containers usarão
+networks:
+  clivet-network:
+    driver: bridge
+
+# Define o volume nomeado para o banco de dados
+volumes:
+  db-data:
