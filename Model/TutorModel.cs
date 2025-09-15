@@ -19,5 +19,12 @@ namespace CliVet.Model
         public DateTime DataNascimento { get; set; }
 
         public ICollection<PetModel> Pets { get; set; } = [];
+
+        public TutorModel(string nome, string cpf, DateTime dataNascimento)
+        {
+            Nome = nome;
+            Cpf = cpf;
+            DataNascimento = dataNascimento;
+        }
     }
 }

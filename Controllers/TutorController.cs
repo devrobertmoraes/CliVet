@@ -21,7 +21,7 @@ namespace CliVet.Controllers
             {
                 var novoTutor = _tutorService.CriarTutor(tutorDto);
 
-                return CreatedAtAction(nameof(GetTutorPorId), new {id = novoTutor.Id}, novoTutor);
+                return CreatedAtAction(nameof(GetTutorPorId), new {id = novoTutor.Id}, novoTutor);              
             }
             catch (ArgumentException ex)
             {
@@ -45,9 +45,21 @@ namespace CliVet.Controllers
         {
             var tutor = _tutorService.GetTutorPorId(id);
 
-            if (tutor == null) return NotFound(new { mensagem = $"Tutor com {id} não encontrado"});
+            if (tutor == null) return NotFound(new { mensagem = $"Tutor com {id} não encontrado" });
 
-            return Ok(tutor);
+
+                var idade = DateTime.Today.Year - tutor.DataNascimento.Year;
+
+                var tutorDto = new LerTutorDto
+                {
+                    Id = tutor.Id,
+                    Nome = tutor.Nome,
+                    Cpf = tutor.Cpf,
+                    DataNascimento = tutor.DataNascimento,
+                    Idade = idade
+                };
+
+            return Ok(tutorDto);
         }
 
         [HttpPut("{id}")]

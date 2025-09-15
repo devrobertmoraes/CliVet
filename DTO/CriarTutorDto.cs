@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using CliVet.Model;
+using System.ComponentModel.DataAnnotations;
 
 namespace CliVet.DTO
 {
@@ -14,5 +15,11 @@ namespace CliVet.DTO
 
         [Required]
         public DateTime DataNascimento { get; set; }
+
+        public TutorModel ToEntity()
+        {
+            return new TutorModel(Nome, Cpf, DataNascimento);   
+            
+        }
     }
 }

@@ -20,12 +20,7 @@ namespace CliVet.Services
 
             if (cpfExiste) throw new ArgumentException("O CPF informado já foi cadastrado");
 
-            var tutorModel = new TutorModel
-            {
-                Nome = tutorDto.Nome,
-                Cpf = tutorDto.Cpf,
-                DataNascimento = tutorDto.DataNascimento
-            };
+            var tutorModel = tutorDto.ToEntity();
 
             _context.Tutores.Add(tutorModel);
             _context.SaveChanges();
@@ -46,21 +41,21 @@ namespace CliVet.Services
         {
             var tutores = _context.Tutores.ToList();
 
-            var tutoresDto = new List<LerTutorDto>();
+            var tutoresDto = tutores.Select(LerTutorDto.FromEntity).ToList();
 
-            foreach (var tutor in tutores)
-            {
-                var idade = DateTime.Today.Year - tutor.DataNascimento.Year;
+            //foreach (var tutor in tutores)
+            //{
+            //    var idade = DateTime.Today.Year - tutor.DataNascimento.Year;
 
-                tutoresDto.Add(new LerTutorDto
-                {
-                    Id = tutor.Id,
-                    Nome = tutor.Nome,
-                    Cpf = tutor.Cpf,
-                    DataNascimento = tutor.DataNascimento,
-                    Idade = idade
-                });
-            }
+            //    tutoresDto.Add(new LerTutorDto
+            //    {
+            //        Id = tutor.Id,
+            //        Nome = tutor.Nome,
+            //        Cpf = tutor.Cpf,
+            //        DataNascimento = tutor.DataNascimento,
+            //        Idade = idade
+            //    });
+            //}
 
             return tutoresDto;
         }
