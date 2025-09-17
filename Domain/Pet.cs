@@ -1,8 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace CliVet.Model
-{
-    public class PetModel
+namespace CliVet.Domain { 
+    public class Pet
     {
         [Key]
         public int Id { get; set; }
@@ -14,6 +13,6 @@ namespace CliVet.Model
         [MaxLength(50)]
         public string Especie { get; set; }
         public int TutorId { get; set; }
-        public TutorModel Tutor { get; set; }
+        public Tutor Tutor { get; set; }
     }
 }

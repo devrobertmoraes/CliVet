@@ -1,6 +1,6 @@
-﻿using CliVet.Data.Context;
-using CliVet.DTO;
-using CliVet.Model;
+﻿using CliVet.DTO;
+using CliVet.Infrastructure.Context;
+using CliVet.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace CliVet.Services
@@ -22,7 +22,7 @@ namespace CliVet.Services
 
             if (nomePetExiste) throw new ArgumentException($"Já existe um pet cadastrado com esse nome");
 
-            var petModel = new PetModel
+            var petModel = new Pet
             {
                 Nome = petDto.Nome,
                 Especie = petDto.Especie,

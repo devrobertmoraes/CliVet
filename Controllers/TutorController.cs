@@ -1,9 +1,7 @@
-﻿using CliVet.Data.Context;
-using CliVet.DTO;
-using CliVet.Model;
+﻿using CliVet.DTO;
 using CliVet.Services;
+using CliVet.Shared;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CliVet.Controllers
 {
@@ -12,25 +10,23 @@ namespace CliVet.Controllers
     public class TutorController : ControllerBase
     {
         private readonly TutorService _tutorService;
-        public TutorController(TutorService tutorService) => _tutorService = tutorService;
+        public TutorController(TutorService tutorService) 
+        {
+            _tutorService = tutorService;
+        }
 
         [HttpPost]
         public ActionResult CriarTutor([FromBody] CriarTutorDto tutorDto)
         {
-            try
-            {
-                var novoTutor = _tutorService.CriarTutor(tutorDto);
+            var result = _tutorService.CriarTutor(tutorDto);
 
-                return CreatedAtAction(nameof(GetTutorPorId), new {id = novoTutor.Id}, novoTutor);              
-            }
-            catch (ArgumentException ex)
+            if (result.IsSuccess)
             {
-                return BadRequest(new {mensagem = ex.Message});
+                return CreatedAtAction(nameof(GetTutorPorId), new { id = result.Data.Id }, result.Data);
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensagem = "Ocorreu um erro interno no servidor.", detalhe = ex.Message });
-            }
+
+            return BadRequest(new {errors = result.Errors});
+
         }
 
         [HttpGet]
@@ -43,60 +39,69 @@ namespace CliVet.Controllers
         [HttpGet("{id}")]
         public ActionResult GetTutorPorId(int id)
         {
-            var tutor = _tutorService.GetTutorPorId(id);
+            var result = _tutorService.GetTutorPorId(id);
 
-            if (tutor == null) return NotFound(new { mensagem = $"Tutor com {id} não encontrado" });
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
 
+            switch (result.ErrorType)
+            {
+                case ErrorType.NotFound:
+                    return NotFound(new { message = result.Errors.First() });
 
-                var idade = DateTime.Today.Year - tutor.DataNascimento.Year;
+                case ErrorType.Validation:
+                    return BadRequest(new { errors = result.Errors });
 
-                var tutorDto = new LerTutorDto
-                {
-                    Id = tutor.Id,
-                    Nome = tutor.Nome,
-                    Cpf = tutor.Cpf,
-                    DataNascimento = tutor.DataNascimento,
-                    Idade = idade
-                };
-
-            return Ok(tutorDto);
+                default:
+                    return BadRequest(new { errors = result.Errors });
+            }
         }
 
         [HttpPut("{id}")]
         public ActionResult EditarTutor(int id, [FromBody] EditarTutorDto tutorDto)
         {
-            try
+            var result = _tutorService.EditarTutor(id, tutorDto);
+
+            if (result.IsSuccess)
             {
-                var tutorAtualizado = _tutorService.EditarTutor(id, tutorDto);
-
-                if (tutorAtualizado == null) return NotFound(new { mensagem = $"Tutor com ID {id} não encontrado." });
-
-                return Ok(tutorAtualizado);
+                return NoContent();
             }
-            catch (Exception ex)
+
+            switch (result.ErrorType)
             {
-                return StatusCode(500, new { mensagem = "Ocorreu um erro interno no servidor.", detalhe = ex.Message });
+                case ErrorType.NotFound:
+                    return NotFound(new { message = result.Errors.First() });
+
+                case ErrorType.Validation:
+                    return BadRequest(new { errors = result.Errors });
+
+                default:
+                    return BadRequest(new { errors = result.Errors });
             }
         }
 
         [HttpDelete("{id}")]
         public ActionResult DeletarTutor(int id)
         {
-            try
+            var result = _tutorService.DeletarTutor(id);
+
+            if (result.IsSuccess)
             {
-                var sucesso = _tutorService.DeletarTutor(id);
-
-                if (!sucesso) return NotFound(new { mensagem = $"Tutor com ID {id} não encontrado." });
-
                 return NoContent();
             }
-            catch (InvalidOperationException ex)
+
+            switch (result.ErrorType)
             {
-                return BadRequest(new { mensagem = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensagem = "Ocorreu um erro interno no servidor.", detalhe = ex.Message });
+                case ErrorType.NotFound:
+                    return NotFound(new { message = result.Errors.First() });
+
+                case ErrorType.Validation:
+                    return BadRequest(new { errors = result.Errors });
+
+                default:
+                    return BadRequest(new { errors = result.Errors });
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using CliVet.Model;
+﻿using CliVet.Domain;
 
 namespace CliVet.DTO
 {
@@ -10,14 +10,22 @@ namespace CliVet.DTO
         public DateTime DataNascimento { get; set; }
         public int Idade { get; set; }
 
-        public static LerTutorDto FromEntity(TutorModel tutor)
+        public static LerTutorDto FromEntity(Tutor tutor)
         {
+            var hoje = DateTime.Now;
+            var idade = hoje.Year - tutor.DataNascimento.Year;
+
+            if (tutor.DataNascimento.Date > hoje.AddYears(-idade))
+            {
+                idade--;
+            }
+
             return new LerTutorDto
             {
                 Id = tutor.Id,
                 Nome = tutor.Nome,
                 Cpf = tutor.Cpf,
-                DataNascimento = tutor.DataNascimento
+                Idade = idade
             };
         }
     }

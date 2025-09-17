@@ -1,4 +1,7 @@
-using CliVet.Data.Context;
+using CliVet.Domain.Repositories;
+using CliVet.Infrastructure;
+using CliVet.Infrastructure.Context;
+using CliVet.Infrastructure.Repositories;
 using CliVet.Services;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -30,6 +33,7 @@ namespace CliVet
 
             builder.Services.AddScoped<TutorService>();
             builder.Services.AddScoped<PetService>();
+            builder.Services.AddScoped<ITutorRepository, TutorRepository>();
 
             var app = builder.Build();
 

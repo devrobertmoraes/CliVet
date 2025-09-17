@@ -1,112 +1,93 @@
-﻿using CliVet.Data.Context;
-using CliVet.DTO;
-using CliVet.Model;
+﻿using CliVet.DTO;
+using CliVet.Domain;
 using Microsoft.EntityFrameworkCore;
+using CliVet.Domain.Repositories;
+using CliVet.Shared;
 
 namespace CliVet.Services
 {
     public class TutorService
     {
-        private readonly CliVetContext _context;
-        public TutorService(CliVetContext context) => _context = context;
-
-        public LerTutorDto CriarTutor(CriarTutorDto tutorDto)
+        private readonly ITutorRepository _tutorRepository;
+        public TutorService(ITutorRepository tutorRepository)
         {
-            var idade = DateTime.Today.Year - tutorDto.DataNascimento.Year;
+            _tutorRepository = tutorRepository;
+        }
 
-            if (idade < 18) throw new Exception("O tutor deve ter 18 anos ou mais");
+        public OperationResult<LerTutorDto> CriarTutor(CriarTutorDto tutorDto)
+        {
+            var tutorResult = Tutor.Create(
+                tutorDto.Nome,
+                tutorDto.Cpf,
+                tutorDto.DataNascimento
+            );
 
-            var cpfExiste = _context.Tutores.Any(t => t.Cpf == tutorDto.Cpf);
-
-            if (cpfExiste) throw new ArgumentException("O CPF informado já foi cadastrado");
-
-            var tutorModel = tutorDto.ToEntity();
-
-            _context.Tutores.Add(tutorModel);
-            _context.SaveChanges();
-
-            var lerTutorDto = new LerTutorDto
+            if (!tutorResult.IsSuccess)
             {
-                Id = tutorModel.Id,
-                Nome = tutorModel.Nome,
-                Cpf = tutorModel.Cpf,
-                DataNascimento = tutorModel.DataNascimento,
-                Idade = idade
-            };
+                return OperationResult<LerTutorDto>.Fail(tutorResult.Errors);
+            }
 
-            return lerTutorDto;
+            if (_tutorRepository.CpfJaExiste(tutorDto.Cpf))
+            {
+                return OperationResult<LerTutorDto>.Fail("O CPF informado já foi cadastrado.");
+            }
+
+            var tutorParaSalvar = tutorResult.Data;
+            var novoTutor = _tutorRepository.CriarTutor(tutorParaSalvar);
+
+            return OperationResult<LerTutorDto>.Ok(LerTutorDto.FromEntity(novoTutor));
         }
 
         public List<LerTutorDto> GetTutores()
         {
-            var tutores = _context.Tutores.ToList();
+            var tutores = _tutorRepository.GetTutores();
 
-            var tutoresDto = tutores.Select(LerTutorDto.FromEntity).ToList();
-
-            //foreach (var tutor in tutores)
-            //{
-            //    var idade = DateTime.Today.Year - tutor.DataNascimento.Year;
-
-            //    tutoresDto.Add(new LerTutorDto
-            //    {
-            //        Id = tutor.Id,
-            //        Nome = tutor.Nome,
-            //        Cpf = tutor.Cpf,
-            //        DataNascimento = tutor.DataNascimento,
-            //        Idade = idade
-            //    });
-            //}
+            var tutoresDto = tutores
+                .Select(tutor => LerTutorDto.FromEntity(tutor))
+                .ToList();
 
             return tutoresDto;
         }
 
-        public LerTutorDto GetTutorPorId(int id)
+        public OperationResult<LerTutorDto> GetTutorPorId(int id)
         {
-            var tutor = _context.Tutores.FirstOrDefault(t => t.Id == id);
+            var tutor = _tutorRepository.GetTutorPorId(id);
 
-            if (tutor == null) return null;
+            if (tutor == null) 
+                return OperationResult<LerTutorDto>.NotFound($"Tutor com ID {id} não foi encontrado.");
 
-            var idade = DateTime.Today.Year - tutor.DataNascimento.Year;
+            var tutorDto = LerTutorDto.FromEntity(tutor);
+            return OperationResult<LerTutorDto>.Ok(tutorDto);  
+        }
 
-            var tutorDto = new LerTutorDto
+        public OperationResult<bool> EditarTutor(int id, EditarTutorDto tutorDto)
+        {
+            var tutor = _tutorRepository.GetTutorPorId(id);
+
+            if (tutor == null)
             {
-                Id = tutor.Id,
-                Nome = tutor.Nome,
-                Cpf = tutor.Cpf,
-                DataNascimento = tutor.DataNascimento,
-                Idade = idade
-            };
+                return OperationResult<bool>.NotFound($"Tutor com ID {id} não foi encontrado para edição.");
+            }
 
-            return tutorDto;
+            tutor.AtualizarNome(tutorDto.Nome);
+
+            _tutorRepository.EditarTutor(tutor);
+
+            return OperationResult<bool>.Ok(true);
         }
 
-        public LerTutorDto EditarTutor(int id, EditarTutorDto tutorDto)
+        public OperationResult<bool> DeletarTutor(int id)
         {
-            var tutor = _context.Tutores.Find(id);
+            var tutor = _tutorRepository.GetTutorPorId(id);
 
-            if (tutor == null) return null;
+            if (tutor == null)
+            {
+                return OperationResult<bool>.NotFound($"Tutor com ID {id} não foi encontrado para exclusão.");
+            }
 
-            tutor.Nome = tutorDto.Nome;
+            _tutorRepository.DeletarTutor(tutor);
 
-            _context.SaveChanges();
-
-            return GetTutorPorId(id);
-        }
-
-        public bool DeletarTutor(int id)
-        {
-            var tutor = _context.Tutores.Include(t => t.Pets).FirstOrDefault(t => t.Id == id);
-
-            if (tutor == null) return false;
-
-            // não posso deletar tutor com pets atrelados
-            if (tutor.Pets.Any()) throw new InvalidOperationException("Não é possível excluir um tutor que possui pets atrelados");
-
-            _context.Tutores.Remove(tutor);
-
-            _context.SaveChanges();
-
-            return true;
+            return OperationResult<bool>.Ok(true);
         }
     }
 }
